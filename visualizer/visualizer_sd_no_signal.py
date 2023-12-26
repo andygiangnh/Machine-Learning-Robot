@@ -1,40 +1,46 @@
 import pygame, math, numpy
 
 # constant based on lidar resolution
-LIDAR_RESOLUTION = 240
-# lidar resolution divided by 4 to simplify the visualization
-VISUALIZATION_RESOLUTION = 240
+LIDAR_RESOLUTION = 360
 # Selected positions in a frame (result of the Sklearn SelectKBest function)
 POSITIONS_PER_FRAME = [141, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 203, 204, 205, 206, 207]
 
 
 def get_data_from_arduino(line):
     # [:-3] get rid of end of line sign and additional comma separator that is sent from arduino
-    data = line[:-3]
+    # data = line[:-3]
+    data = line[:]
     print(data)
     d_list = data.split(",")
     return d_list
 
 
-def generate_line_positions(number_of_lines):
-    angle = 360 / number_of_lines
+"""
+Return the (x,y) position for the point when circle radius of 1
+"""
+
+
+def generate_baseline_positions():
     lines = []
-    for x in range(number_of_lines):
-        lines.append([300 * math.cos((x + 1) * angle / 180 * math.pi), 300 * math.sin((x + 1) * angle / 180 * math.pi)])
+    for x in range(LIDAR_RESOLUTION):
+        lines.append([math.cos(x / 180 * math.pi),
+                      math.sin(x / 180 * math.pi)])
     return lines
 
 
 def run():
     pygame.init()
 
-    line_positions = generate_line_positions(VISUALIZATION_RESOLUTION)
+    line_positions = generate_baseline_positions()
+    for line_position in line_positions:
+        print(line_position)
 
     # Set up the drawing window
     screen = pygame.display.set_mode([800, 800])
     sys_font = pygame.font.get_default_font()
     font1 = pygame.font.SysFont(sys_font, 72)
 
-    file1 = open('../data/test6.txt', 'r')
+    file1 = open('../data/out2.txt', 'r')
     lines = file1.readlines()
     running = True
     counter = 0
@@ -57,6 +63,8 @@ def run():
                     """
                     inspect_mode = not inspect_mode
                     print('INSPECT MODE: {}'.format(inspect_mode))
+                elif event.key == pygame.K_q:
+                    running = False
             elif event.type == pygame.QUIT:
                 # Press 'X' button on window will close the program
                 running = False
@@ -67,20 +75,25 @@ def run():
             continue
 
         distances = get_data_from_arduino(line)
-        print(len(distances))
+        # print(len(distances))
         if len(distances) == LIDAR_RESOLUTION:
             # Fill the background with white
             screen.fill((250, 250, 250))
 
-            for x in range(VISUALIZATION_RESOLUTION):
-                a = int(distances[x]) / 2000
+            for x in range(LIDAR_RESOLUTION):
+                a = float(distances[x]) / 2
                 if x in POSITIONS_PER_FRAME:
+                    # Draw the important point with RED color
                     pygame.draw.circle(screen, (255, 0, 0),
-                                       (line_positions[x][0] * a + 400, line_positions[x][1] * a + 400), 3)
+                                       (line_positions[x][0] * a + 400, line_positions[x][1] * a + 400),
+                                       3)
                 else:
+                    # Draw the ordinary point with BLACK color
                     pygame.draw.circle(screen, (0, 0, 0),
                                        (line_positions[x][0] * a + 400, line_positions[x][1] * a + 400),
                                        2)
+                    # print('Position x:{}, y:{}'
+                    #       .format(line_positions[x][0] * a + 400, line_positions[x][1] * a + 400))
 
             pygame.draw.circle(screen, (252, 132, 3), (400, 400), 12)
             # Flip the display
