@@ -1,44 +1,24 @@
-import pygame, math, numpy
+import pygame
+import math
 
 # constant based on lidar resolution
 LIDAR_RESOLUTION = 360
+# Constant screen width
+SCREEN_WIDTH = 800
 # Selected positions in a frame (result of the Sklearn SelectKBest function)
-POSITIONS_PER_FRAME = [141, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 203, 204, 205, 206, 207]
+DECISIVE_FRAME_POSITIONS = [141, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 203, 204, 205, 206, 207]
 
 
 def get_data_from_arduino(line):
-    # [:-3] get rid of end of line sign and additional comma separator that is sent from arduino
-    # data = line[:-3]
-    data = line[:]
-    print(data)
-    d_list = data.split(",")
+    d_list = line.split(",")
     return d_list
-
-
-"""
-Return the (x,y) position for the point when circle radius of 1
-"""
-
-
-def generate_baseline_positions():
-    lines = []
-    for x in range(LIDAR_RESOLUTION):
-        lines.append([math.cos(x / 180 * math.pi),
-                      math.sin(x / 180 * math.pi)])
-    return lines
 
 
 def run():
     pygame.init()
 
-    line_positions = generate_baseline_positions()
-    for line_position in line_positions:
-        print(line_position)
-
     # Set up the drawing window
-    screen = pygame.display.set_mode([800, 800])
-    sys_font = pygame.font.get_default_font()
-    font1 = pygame.font.SysFont(sys_font, 72)
+    screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_WIDTH])
 
     file1 = open('../data/out2.txt', 'r')
     lines = file1.readlines()
@@ -81,21 +61,24 @@ def run():
             screen.fill((250, 250, 250))
 
             for x in range(LIDAR_RESOLUTION):
+                # depend on the average distance, divide distance with a constant for better view
                 a = float(distances[x]) / 2
-                if x in POSITIONS_PER_FRAME:
+                if x in DECISIVE_FRAME_POSITIONS:
                     # Draw the important point with RED color
                     pygame.draw.circle(screen, (255, 0, 0),
-                                       (line_positions[x][0] * a + 400, line_positions[x][1] * a + 400),
+                                       (math.cos(x / 180 * math.pi) * a + SCREEN_WIDTH/2,
+                                        math.sin(x / 180 * math.pi) * a + SCREEN_WIDTH/2),
                                        3)
                 else:
                     # Draw the ordinary point with BLACK color
                     pygame.draw.circle(screen, (0, 0, 0),
-                                       (line_positions[x][0] * a + 400, line_positions[x][1] * a + 400),
+                                       (math.cos(x / 180 * math.pi) * a + SCREEN_WIDTH/2,
+                                        math.sin(x / 180 * math.pi) * a + SCREEN_WIDTH/2),
                                        2)
                     # print('Position x:{}, y:{}'
                     #       .format(line_positions[x][0] * a + 400, line_positions[x][1] * a + 400))
 
-            pygame.draw.circle(screen, (252, 132, 3), (400, 400), 12)
+            pygame.draw.circle(screen, (252, 132, 3), (SCREEN_WIDTH/2, SCREEN_WIDTH/2), 12)
             # Flip the display
             pygame.display.flip()
             pygame.time.wait(50)
